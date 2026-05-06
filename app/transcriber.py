@@ -2,27 +2,18 @@ import os
 import subprocess
 from urllib.parse import parse_qs, urlparse
 
-import whisper
+import openai
 from youtube_transcript_api import YouTubeTranscriptApi
 
 from .downloader import VideoData
-
-_whisper_model: whisper.Whisper | None = None
-
-
-def _get_whisper_model() -> whisper.Whisper:
-    global _whisper_model
-    if _whisper_model is None:
-        _whisper_model = whisper.load_model("base")
-    return _whisper_model
 
 
 def get_transcript(video_data: VideoData, url: str) -> str:
     """Get a text transcript from a video, preferring native captions.
 
     For YouTube, tries to fetch auto-generated or manual captions first
-    (free, instant). Falls back to Whisper audio transcription, which is
-    also the only option for Instagram.
+    (free, instant). Falls back to OpenAI Whisper API for Instagram or
+    when captions are unavailable.
 
     Args:
         video_data: Downloaded video metadata and local path.
@@ -36,7 +27,7 @@ def get_transcript(video_data: VideoData, url: str) -> str:
         if captions:
             return captions
 
-    return _transcribe_with_whisper(video_data.video_path)
+    return _transcribe_with_whisper_api(video_data.video_path)
 
 
 # ------------------------------------------------------------------
@@ -80,15 +71,25 @@ def _extract_youtube_id(url: str) -> str | None:
 
 
 # ------------------------------------------------------------------
-# Whisper fallback (local, no API key needed)
+# Whisper fallback — OpenAI cloud API (no local model, no RAM spike)
 # ------------------------------------------------------------------
 
-def _transcribe_with_whisper(video_path: str) -> str:
+def _transcribe_with_whisper_api(video_path: str) -> str:
+    """Transcribe audio via the OpenAI Whisper API.
+
+    Requires OPENAI_API_KEY. If the key is missing or the call fails,
+    returns an empty string so recipe extraction can still proceed using
+    the video description and screenshot.
+    """
     audio_path = _extract_audio(video_path)
     try:
-        model = _get_whisper_model()
-        result = model.transcribe(audio_path)
-        return result["text"]
+        client = openai.OpenAI()
+        with open(audio_path, "rb") as audio_file:
+            result = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file,
+            )
+        return result.text
     except Exception:
         return ""
     finally:
