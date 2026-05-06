@@ -13,18 +13,34 @@ _TURSO_URL   = os.environ.get("TURSO_DATABASE_URL")
 _TURSO_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
 
 
+class _LibSQLConnectionWrapper:
+    """Wraps a libsql connection to satisfy SQLAlchemy's pysqlite dialect.
+
+    libsql_experimental's Connection is a C extension type that does not
+    support dynamic attribute assignment. SQLAlchemy's pysqlite dialect
+    calls create_function() on every new connection to register REGEXP
+    support. This wrapper adds that stub so SQLAlchemy doesn't crash,
+    while delegating everything else to the real libsql connection.
+    """
+
+    def __init__(self, conn) -> None:
+        self._conn = conn
+
+    def create_function(self, *args, **kwargs) -> None:
+        pass  # no-op — libsql doesn't support user-defined SQL functions
+
+    def __getattr__(self, name: str):
+        return getattr(self._conn, name)
+
+
 def _build_engine():
     if _TURSO_URL and _TURSO_TOKEN:
         import libsql_experimental as libsql  # only imported when Turso vars present
 
         def _creator():
-            conn = libsql.connect(database=_TURSO_URL, auth_token=_TURSO_TOKEN)
-            # SQLAlchemy's pysqlite dialect calls create_function() on every
-            # new connection to register REGEXP support. libsql doesn't
-            # implement this method, so we add a no-op stub to avoid the crash.
-            if not hasattr(conn, "create_function"):
-                conn.create_function = lambda *args, **kwargs: None
-            return conn
+            return _LibSQLConnectionWrapper(
+                libsql.connect(database=_TURSO_URL, auth_token=_TURSO_TOKEN)
+            )
 
         return create_engine(
             "sqlite+pysqlite:///",
