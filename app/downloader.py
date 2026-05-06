@@ -3,6 +3,10 @@ from dataclasses import dataclass
 
 import yt_dlp
 
+# Reject videos longer than this — protects against large file downloads
+# on memory-constrained hosts (Render free tier: 512 MB RAM)
+_MAX_DURATION_SECONDS = 600  # 10 minutes
+
 
 @dataclass
 class VideoData:
@@ -24,18 +28,35 @@ def download_video(url: str, output_dir: str) -> VideoData:
         VideoData containing metadata and local file path.
 
     Raises:
+        ValueError: If the video exceeds the maximum allowed duration.
         yt_dlp.utils.DownloadError: If the video cannot be downloaded.
         FileNotFoundError: If no video file is found after download.
     """
-    ydl_opts = {
+    # ------------------------------------------------------------------
+    # Step 1 — fetch metadata only (no download yet) to check duration
+    # ------------------------------------------------------------------
+    meta_opts = {"quiet": True, "no_warnings": True, "skip_download": True}
+    with yt_dlp.YoutubeDL(meta_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+
+    duration = float(info.get("duration") or 0)
+    if duration > _MAX_DURATION_SECONDS:
+        raise ValueError(
+            f"Video is {int(duration / 60)} min long — only videos up to "
+            f"{_MAX_DURATION_SECONDS // 60} min are supported."
+        )
+
+    # ------------------------------------------------------------------
+    # Step 2 — download lowest viable quality to save memory/disk
+    # ------------------------------------------------------------------
+    dl_opts = {
         "format": "best[height<=480][ext=mp4]/best[height<=480]/worst",
         "outtmpl": os.path.join(output_dir, "video.%(ext)s"),
         "quiet": True,
         "no_warnings": True,
     }
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    with yt_dlp.YoutubeDL(dl_opts) as ydl:
+        ydl.download([url])
 
     video_path = _find_video_file(output_dir)
 
@@ -43,7 +64,7 @@ def download_video(url: str, output_dir: str) -> VideoData:
         title=info.get("title") or "",
         description=info.get("description") or "",
         video_path=video_path,
-        duration=float(info.get("duration") or 0),
+        duration=duration,
         platform=_detect_platform(url),
     )
 
