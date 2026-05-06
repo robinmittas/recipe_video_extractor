@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Generate App Icon</title>
+  <style>
+    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px; background: #fafaf9; }
+    canvas { border-radius: 36px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+    button { padding: 12px 28px; background: #f59e0b; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #d97706; }
+    p { color: #78716c; font-size: 13px; text-align: center; max-width: 320px; }
+  </style>
+</head>
+<body>
+  <h2 style="margin:0; color:#1c1917">🍳 App Icon Preview</h2>
+  <canvas id="icon" width="180" height="180"></canvas>
+  <button onclick="downloadIcon()">Download apple-touch-icon.png</button>
+  <p>Save it to <code>frontend/public/apple-touch-icon.png</code>, then commit &amp; push.</p>
+
+  <script>
+    const canvas = document.getElementById("icon");
+    const ctx = canvas.getContext("2d");
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    // ── Background gradient ──────────────────────────────
+    const bg = ctx.createLinearGradient(0, 0, 180, 180);
+    bg.addColorStop(0, "#fcd34d");
+    bg.addColorStop(1, "#b45309");
+    roundRect(0, 0, 180, 180, 36);
+    ctx.fillStyle = bg;
+    ctx.fill();
+
+    // ── Plate shadow ─────────────────────────────────────
+    ctx.beginPath();
+    ctx.arc(91, 97, 58, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
+    ctx.fill();
+
+    // ── Plate ────────────────────────────────────────────
+    ctx.beginPath();
+    ctx.arc(90, 95, 58, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(90, 95, 50, 0, Math.PI * 2);
+    ctx.fillStyle = "#fffbf0";
+    ctx.fill();
+
+    // ── Broccoli ─────────────────────────────────────────
+    // stem
+    ctx.fillStyle = "#92400e";
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(87, 76, 6, 22, 2) : (() => { roundRect(87, 76, 6, 22, 2); })();
+    ctx.fill();
+
+    // florets (back layer)
+    [
+      { x: 80, y: 73, r: 10, c: "#14532d" },
+      { x: 100, y: 73, r: 10, c: "#14532d" },
+      { x: 90, y: 67, r: 12, c: "#15803d" },
+    ].forEach(({ x, y, r, c }) => {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = c; ctx.fill();
+    });
+
+    // florets (front layer)
+    [
+      { x: 81, y: 71, r: 8,  c: "#16a34a" },
+      { x: 99, y: 71, r: 8,  c: "#16a34a" },
+      { x: 90, y: 65, r: 10, c: "#22c55e" },
+    ].forEach(({ x, y, r, c }) => {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = c; ctx.fill();
+    });
+
+    // ── Carrot ───────────────────────────────────────────
+    ctx.save();
+    ctx.translate(68, 108);
+    ctx.rotate((30 * Math.PI) / 180);
+
+    // body
+    ctx.beginPath();
+    ctx.moveTo(-5, -18);
+    ctx.lineTo(5, -18);
+    ctx.lineTo(1, 20);
+    ctx.lineTo(-1, 20);
+    ctx.closePath();
+    ctx.fillStyle = "#ea580c";
+    ctx.fill();
+
+    // highlight strip
+    ctx.beginPath();
+    ctx.moveTo(0, -18);
+    ctx.lineTo(2, -18);
+    ctx.lineTo(0, 20);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.fill();
+
+    // leaves
+    ctx.strokeStyle = "#16a34a";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    [[-9, -28], [0, -30], [9, -28]].forEach(([dx, dy]) => {
+      ctx.beginPath();
+      ctx.moveTo(0, -17);
+      ctx.lineTo(dx, dy);
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    // ── Tomato ───────────────────────────────────────────
+    // shadow
+    ctx.beginPath();
+    ctx.arc(116, 114, 16, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.fill();
+
+    // body
+    ctx.beginPath();
+    ctx.arc(115, 112, 16, 0, Math.PI * 2);
+    ctx.fillStyle = "#dc2626";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(115, 112, 13, 0, Math.PI * 2);
+    ctx.fillStyle = "#f87171";
+    ctx.fill();
+
+    // shine
+    ctx.beginPath();
+    ctx.arc(110, 107, 4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.fill();
+
+    // stem + leaves
+    ctx.strokeStyle = "#15803d";
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(115, 98);
+    ctx.lineTo(115, 100);
+    ctx.stroke();
+    [[-4, -4], [4, -4], [0, -5]].forEach(([dx, dy]) => {
+      ctx.beginPath();
+      ctx.moveTo(115, 98);
+      ctx.lineTo(115 + dx, 98 + dy);
+      ctx.stroke();
+    });
+
+    // ── download ─────────────────────────────────────────
+    function downloadIcon() {
+      const a = document.createElement("a");
+      a.download = "apple-touch-icon.png";
+      a.href = canvas.toDataURL("image/png");
+      a.click();
+    }
+  </script>
+</body>
+</html>
