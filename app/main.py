@@ -15,7 +15,7 @@ from .database import RecipeRecord, get_db, init_db
 from .downloader import download_video
 from .models import Ingredient, Recipe, RecipeInDB, RecipeRequest, RecipeSummary
 from .recipe_parser import parse_recipe
-from .screenshot import get_screenshot
+from .screenshot import get_screenshot as fetch_screenshot
 from .transcriber import get_transcript
 
 app = FastAPI(title="Recipe Video Extractor", version="1.0.0")
@@ -68,7 +68,7 @@ async def extract_recipe(request: RecipeRequest, db: Session = Depends(get_db)) 
 
         try:
             transcript = get_transcript(video_data, request.url)
-            screenshot_b64 = get_screenshot(video_data)
+            screenshot_b64 = fetch_screenshot(video_data)
             recipe = parse_recipe(
                 transcript=transcript,
                 description=video_data.description,

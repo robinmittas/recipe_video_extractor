@@ -21,3 +21,5 @@ output_*.json
 
 # macOS
 .DS_Store
+
+**/tmp/
