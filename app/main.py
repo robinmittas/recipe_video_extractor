@@ -4,7 +4,7 @@ import tempfile
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -132,6 +132,35 @@ def get_screenshot(recipe_id: int, db: Session = Depends(get_db)) -> Response:
     if not record.screenshot_base64:
         raise HTTPException(status_code=404, detail="No screenshot for this recipe")
     return Response(content=base64.b64decode(record.screenshot_base64), media_type="image/jpeg")
+
+
+@app.post("/recipes/{recipe_id}/screenshot", response_model=RecipeInDB)
+async def upload_screenshot(
+    recipe_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> RecipeInDB:
+    """Replace the screenshot for a recipe with an uploaded image.
+
+    Args:
+        recipe_id: ID of the recipe to update.
+        file: Image file (JPEG, PNG, WebP, etc.).
+
+    Returns:
+        Updated RecipeInDB.
+
+    Raises:
+        HTTPException: 400 if no file is provided or type is unsupported.
+        HTTPException: 404 if the recipe does not exist.
+    """
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image.")
+    record = _get_or_404(db, recipe_id)
+    data = await file.read()
+    record.screenshot_base64 = base64.b64encode(data).decode("utf-8")
+    db.commit()
+    db.refresh(record)
+    return _to_full(record)
 
 
 @app.delete("/recipes/{recipe_id}")

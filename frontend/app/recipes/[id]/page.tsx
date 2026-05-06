@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Clock, Users, ExternalLink, ChevronLeft, BookOpen, PlusCircle } from "lucide-react";
 import Nav from "@/components/Nav";
 import DeleteButton from "./DeleteButton";
+import ImageUploadButton from "./ImageUploadButton";
 import PrintButton from "./PrintButton";
 import { getRecipe } from "@/lib/api";
 
@@ -25,16 +26,24 @@ export default async function RecipeDetailPage({ params }: Props) {
       <Nav />
 
       <div className="max-w-lg mx-auto">
-        {/* Screenshot / thumbnail */}
-        {recipe.screenshot_base64 && (
-          <div className="aspect-video w-full overflow-hidden bg-purple-950/50">
+        {/* Screenshot / thumbnail — with replace-image overlay */}
+        <div className="relative aspect-video w-full overflow-hidden bg-purple-950/50 group">
+          {recipe.screenshot_base64 ? (
             <img
               src={`data:image/jpeg;base64,${recipe.screenshot_base64}`}
               alt={recipe.title}
               className="w-full h-full object-cover"
             />
+          ) : (
+            <div className="flex items-center justify-center h-full text-white/20 text-sm">
+              {recipe.language === "de" ? "Kein Bild" : "No image"}
+            </div>
+          )}
+          {/* Upload overlay — visible on hover (desktop) or always (mobile) */}
+          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity print:hidden">
+            <ImageUploadButton recipeId={recipe.id} lang={recipe.language} />
           </div>
-        )}
+        </div>
 
         <div className="px-4 pt-5">
           {/* Top bar — back | actions */}
