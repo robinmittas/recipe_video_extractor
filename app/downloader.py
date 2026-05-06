@@ -1,7 +1,10 @@
+import base64
 import json
 import os
+import tempfile
 import urllib.parse
 import urllib.request
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 
 import yt_dlp
@@ -115,43 +118,73 @@ def _extract_youtube_id(url: str) -> str | None:
 # Instagram / other — full download at low quality
 # ------------------------------------------------------------------
 
-def _download_full_video(url: str, output_dir: str, platform: str) -> VideoData:
-    # Check duration before downloading
+@contextmanager
+def _cookie_file():
+    """Write INSTAGRAM_COOKIES_B64 env var to a temp file for yt-dlp.
+
+    The env var must contain a base64-encoded Netscape cookie file exported
+    from your browser while logged in to Instagram. Yields the file path,
+    or None when the env var is not set.
+    """
+    raw = os.environ.get("INSTAGRAM_COOKIES_B64")
+    if not raw:
+        yield None
+        return
+
+    with tempfile.NamedTemporaryFile(mode="wb", suffix=".txt", delete=False) as f:
+        f.write(base64.b64decode(raw))
+        path = f.name
     try:
-        meta_opts = {"quiet": True, "no_warnings": True, "skip_download": True}
-        with yt_dlp.YoutubeDL(meta_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-        duration = float(info.get("duration") or 0)
-        if duration > _MAX_DURATION_SECONDS:
-            raise ValueError(
-                f"Video is {int(duration / 60)} min — only videos up to "
-                f"{_MAX_DURATION_SECONDS // 60} min are supported."
-            )
-        title = info.get("title") or ""
-        description = info.get("description") or ""
-    except ValueError:
-        raise
-    except Exception:
-        title, description, duration = "", "", 0.0
+        yield path
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
-    dl_opts = {
-        "format": "best[height<=480][ext=mp4]/best[height<=480]/worst",
-        "outtmpl": os.path.join(output_dir, "video.%(ext)s"),
-        "quiet": True,
-        "no_warnings": True,
-    }
-    with yt_dlp.YoutubeDL(dl_opts) as ydl:
-        ydl.download([url])
 
-    video_path = _find_video_file(output_dir)
+def _download_full_video(url: str, output_dir: str, platform: str) -> VideoData:
+    with _cookie_file() as cookies:
+        # Check duration before downloading
+        try:
+            meta_opts = {"quiet": True, "no_warnings": True, "skip_download": True}
+            if cookies:
+                meta_opts["cookiefile"] = cookies
+            with yt_dlp.YoutubeDL(meta_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+            duration = float(info.get("duration") or 0)
+            if duration > _MAX_DURATION_SECONDS:
+                raise ValueError(
+                    f"Video is {int(duration / 60)} min — only videos up to "
+                    f"{_MAX_DURATION_SECONDS // 60} min are supported."
+                )
+            title = info.get("title") or ""
+            description = info.get("description") or ""
+        except ValueError:
+            raise
+        except Exception:
+            title, description, duration = "", "", 0.0
 
-    return VideoData(
-        title=title,
-        description=description,
-        platform=platform,
-        video_path=video_path,
-        duration=duration,
-    )
+        dl_opts = {
+            "format": "best[height<=480][ext=mp4]/best[height<=480]/worst",
+            "outtmpl": os.path.join(output_dir, "video.%(ext)s"),
+            "quiet": True,
+            "no_warnings": True,
+        }
+        if cookies:
+            dl_opts["cookiefile"] = cookies
+        with yt_dlp.YoutubeDL(dl_opts) as ydl:
+            ydl.download([url])
+
+        video_path = _find_video_file(output_dir)
+
+        return VideoData(
+            title=title,
+            description=description,
+            platform=platform,
+            video_path=video_path,
+            duration=duration,
+        )
 
 
 # ------------------------------------------------------------------
