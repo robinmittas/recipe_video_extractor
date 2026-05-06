@@ -4,13 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import Nav from "@/components/Nav";
+import CookingLoader from "@/components/CookingLoader";
 import { extractRecipe } from "@/lib/api";
 
 export default function HomePage() {
-  const [url, setUrl] = useState("");
+  const [url, setUrl]           = useState("");
   const [language, setLanguage] = useState<"en" | "de">("en");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,25 +33,27 @@ export default function HomePage() {
       <Nav />
 
       <main className="max-w-md mx-auto px-4 pt-16 pb-12">
+        {/* Hero */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-stone-900 mb-3 tracking-tight">
+          <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">
             Cook anything.
           </h1>
-          <p className="text-stone-400 text-base">
+          <p className="text-purple-300 text-base">
             Paste a YouTube or Instagram cooking video — get a clean recipe instantly.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* URL input row */}
           <div className="flex gap-2">
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://youtube.com/shorts/..."
+              placeholder="https://youtube.com/shorts/…"
               disabled={loading}
               autoFocus
-              className="flex-1 px-4 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-50 text-sm"
+              className="flex-1 px-4 py-3 rounded-xl border border-white/20 bg-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-400 disabled:opacity-50 text-sm backdrop-blur-sm"
             />
             <button
               type="submit"
@@ -61,8 +64,9 @@ export default function HomePage() {
             </button>
           </div>
 
+          {/* Language toggle */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-stone-400 mr-1">Language</span>
+            <span className="text-xs text-white/50 mr-1">Language</span>
             {(["en", "de"] as const).map((lang) => (
               <button
                 key={lang}
@@ -71,7 +75,7 @@ export default function HomePage() {
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
                   language === lang
                     ? "bg-amber-400 text-stone-900"
-                    : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                    : "bg-white/10 text-white/60 hover:bg-white/20"
                 }`}
               >
                 {lang.toUpperCase()}
@@ -79,19 +83,12 @@ export default function HomePage() {
             ))}
           </div>
 
-          {loading && (
-            <div className="flex flex-col items-center gap-3 py-10">
-              <div className="w-8 h-8 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-stone-400 text-sm text-center">
-                Downloading and extracting recipe…
-                <br />
-                <span className="text-stone-300 text-xs">This can take up to 30 seconds</span>
-              </p>
-            </div>
-          )}
+          {/* Loading animation */}
+          {loading && <CookingLoader />}
 
+          {/* Error */}
           {error && (
-            <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-500 text-sm">
+            <div className="p-4 bg-red-900/40 border border-red-500/30 rounded-xl text-red-300 text-sm backdrop-blur-sm">
               {error}
             </div>
           )}

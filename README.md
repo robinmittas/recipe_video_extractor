@@ -2,22 +2,33 @@
 
 Turn any YouTube or Instagram cooking video into a structured recipe with ingredients, steps, and a screenshot — in seconds.
 
-**Stack:** FastAPI · Claude API · yt-dlp · Next.js · SQLite · Turso · Render · Vercel
+**Stack:** FastAPI · Claude API · yt-dlp · youtube-transcript-api · OpenAI Whisper · Next.js · SQLite · Turso · Render · Vercel
 
 ---
 
 ## How it works
 
+YouTube and Instagram are handled differently to avoid bot detection on cloud servers:
+
 ```
-URL (YouTube / Instagram)
-        │
-        ├── yt-dlp                        → download video + description
-        ├── youtube-transcript-api/Whisper → transcript
-        ├── ffmpeg                         → screenshot at 25% of video
-        └── Claude API                     → structured recipe (title, ingredients, steps)
+YouTube URL
+    ├── oEmbed API              → title (no auth, never blocked)
+    ├── youtube-transcript-api  → captions / transcript (free)
+    ├── YouTube thumbnail CDN   → screenshot (no download needed)
+    └── Claude API              → structured recipe
+                │
+                └── saved to Turso (hosted SQLite) → FastAPI → Next.js PWA
+
+Instagram URL
+    ├── yt-dlp                  → download video at ≤480p
+    ├── OpenAI Whisper API      → audio transcription
+    ├── ffmpeg                  → screenshot frame at 25% of video
+    └── Claude API              → structured recipe
                 │
                 └── saved to Turso (hosted SQLite) → FastAPI → Next.js PWA
 ```
+
+> **Why two pipelines?** YouTube's servers block requests from datacenter IPs (like Render's) when yt-dlp tries to download. The YouTube-specific pipeline avoids this entirely — no video is ever downloaded for YouTube.
 
 ---
 
@@ -25,9 +36,9 @@ URL (YouTube / Instagram)
 
 - Python 3.11+
 - Node.js 18+
-- [ffmpeg](https://ffmpeg.org/) — `brew install ffmpeg` on Mac
+- [ffmpeg](https://ffmpeg.org/) — `brew install ffmpeg` on Mac (used for Instagram only)
 - An [Anthropic API key](https://console.anthropic.com/) — required
-- An [OpenAI API key](https://platform.openai.com/) — optional, only for Instagram videos without a description
+- An [OpenAI API key](https://platform.openai.com/) — optional, only needed for Instagram video transcription
 
 ---
 
@@ -53,6 +64,7 @@ pip install -r requirements.txt
 # Set up environment variables
 cp .env.example .env
 # Open .env and fill in your ANTHROPIC_API_KEY
+# OPENAI_API_KEY is optional — only needed for Instagram videos
 # Leave TURSO_* empty for local dev — it will use a local recipes.db file instead
 
 # Start the server → http://localhost:8000
@@ -97,7 +109,7 @@ git push -u origin main
 
 ### Step 2 — Set up Turso (persistent database)
 
-The database is hosted on [Turso](https://turso.tech) — free tier, persists across all redeploys.
+The database is hosted on [Turso](https://turso.tech) — free tier, persists across all redeploys and service sleep cycles.
 
 **Option A — via browser (no CLI needed):**
 1. Go to [turso.tech](https://turso.tech) → Sign up (free)
@@ -130,7 +142,7 @@ Save these two values — you'll need them in Steps 3 and 4.
    | `ANTHROPIC_API_KEY` | `sk-ant-...` |
    | `TURSO_DATABASE_URL` | `libsql://recipe-extractor-xxx.turso.io` |
    | `TURSO_AUTH_TOKEN` | your Turso token |
-   | `OPENAI_API_KEY` | `sk-...` *(optional)* |
+   | `OPENAI_API_KEY` | `sk-...` *(optional — Instagram only)* |
 
 5. Click **Deploy** → you get a URL like `https://recipe-video-extractor.onrender.com`
 
@@ -242,14 +254,29 @@ Supported languages: `en` (English), `de` (German)
 
 | Service | Cost |
 |---------|------|
-| yt-dlp (video download) | Free |
-| YouTube captions | Free |
+| YouTube oEmbed + captions | Free |
+| YouTube thumbnail CDN | Free |
+| yt-dlp (Instagram download) | Free |
 | Turso database | Free (up to 500 DBs / 9 GB) |
 | Render hosting | Free |
 | Vercel hosting | Free |
-| OpenAI Whisper (Instagram audio) | ~$0.001–0.009 |
+| OpenAI Whisper API (Instagram audio) | ~$0.001–0.009 |
 | Claude Sonnet (recipe extraction) | ~$0.013–0.015 |
-| **Total per video** | **~$0.01–0.02** |
+| **Total per YouTube video** | **~$0.013–0.015** |
+| **Total per Instagram video** | **~$0.014–0.024** |
+
+---
+
+## Known limitations
+
+| Limitation | Detail |
+|------------|--------|
+| YouTube download blocked on Render | Render's datacenter IPs are flagged by YouTube bot detection. The app avoids this by never downloading YouTube videos — it uses captions + thumbnail instead. |
+| YouTube videos without captions | If auto-generated captions are unavailable (e.g. very new or unlisted videos), only the thumbnail is sent to Claude. Extraction quality may be lower. |
+| Instagram requires OpenAI key | Without `OPENAI_API_KEY`, Instagram videos will still extract using the video description, but audio transcription is skipped. |
+| Videos over 10 minutes | Blocked server-side for Instagram. YouTube has no enforced limit but very long videos produce poor results. |
+| Render cold start | After 15 min of inactivity, the first request takes ~50 seconds to wake the service up. |
+| Shared recipe library | All users of the same deployment share one recipe library — there is no per-user authentication. |
 
 ---
 
@@ -259,12 +286,12 @@ Supported languages: `en` (English), `de` (German)
 recipe-video-extractor/
 ├── app/
 │   ├── main.py           # FastAPI app + all endpoints
-│   ├── models.py         # Pydantic schemas
-│   ├── database.py       # SQLAlchemy — Turso (prod) or SQLite (dev)
-│   ├── downloader.py     # yt-dlp video download
-│   ├── transcriber.py    # YouTube captions + Whisper fallback
-│   ├── screenshot.py     # ffmpeg frame extraction
-│   └── recipe_parser.py  # Claude API recipe extraction
+│   ├── models.py         # Pydantic schemas (Recipe, Ingredient, RecipeInDB, etc.)
+│   ├── database.py       # SQLAlchemy — Turso (prod) or local SQLite (dev)
+│   ├── downloader.py     # YouTube metadata (oEmbed + thumbnail) / Instagram yt-dlp download
+│   ├── transcriber.py    # YouTube captions (youtube-transcript-api) + Whisper API fallback
+│   ├── screenshot.py     # YouTube thumbnail download / Instagram ffmpeg frame extraction
+│   └── recipe_parser.py  # Claude API recipe extraction (tool_use for structured JSON)
 ├── frontend/
 │   ├── app/
 │   │   ├── page.tsx               # Home — URL input + language toggle
@@ -274,8 +301,8 @@ recipe-video-extractor/
 │   │   ├── Nav.tsx
 │   │   └── RecipeCard.tsx
 │   └── lib/api.ts         # API client
-├── Dockerfile             # Backend container (used by Render)
-├── generate_icon.html     # One-click PWA icon generator
+├── Dockerfile             # Backend container (used by Render), includes ffmpeg
+├── generate_icon.html     # One-click PWA icon generator (canvas-based)
 ├── requirements.txt
 └── run.py                 # Local dev server
 ```

@@ -10,13 +10,13 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Recipes",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f59e0b",
+  themeColor: "#4c1d95",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -28,7 +28,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {/* Animated blobs — fixed behind all content */}
+        <div className="bg-blob bg-blob-1" aria-hidden="true" />
+        <div className="bg-blob bg-blob-2" aria-hidden="true" />
+        <div className="bg-blob bg-blob-3" aria-hidden="true" />
+
+        {children}
+      </body>
     </html>
   );
 }
