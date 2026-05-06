@@ -3,7 +3,7 @@ import os
 
 from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 
 # ------------------------------------------------------------------
 # Engine — Turso (production) or local SQLite (development)
@@ -42,11 +42,13 @@ def _build_engine():
                 libsql.connect(database=_TURSO_URL, auth_token=_TURSO_TOKEN)
             )
 
+        # NullPool: fresh connection per request — avoids stale Turso stream
+        # errors after Render wakes from sleep (StaticPool reuses a dead stream)
         return create_engine(
             "sqlite+pysqlite:///",
             creator=_creator,
             connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
+            poolclass=NullPool,
         )
 
     # Local dev — plain SQLite file
