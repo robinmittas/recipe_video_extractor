@@ -51,7 +51,9 @@ def download_video(url: str, output_dir: str) -> VideoData:
 def _get_youtube_metadata(url: str) -> VideoData:
     video_id = _extract_youtube_id(url)
     title = _fetch_oembed_title(url)
-    description = _fetch_description_safe(url)
+    # Skip yt-dlp description fetch — Render's datacenter IP is blocked by
+    # YouTube bot detection. Captions + thumbnail are sufficient for Claude.
+    description = ""
     thumbnail_url = _best_thumbnail_url(video_id)
 
     return VideoData(

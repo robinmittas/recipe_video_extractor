@@ -26,6 +26,12 @@ def get_transcript(video_data: VideoData, url: str) -> str:
         captions = _fetch_youtube_captions(url)
         if captions:
             return captions
+        # No video file for YouTube — Whisper is not possible, return empty
+        return ""
+
+    # Non-YouTube: audio transcription requires a downloaded video file
+    if not video_data.video_path:
+        return ""
 
     return _transcribe_with_whisper_api(video_data.video_path)
 
