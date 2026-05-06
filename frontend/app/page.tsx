@@ -9,7 +9,7 @@ import { extractRecipe } from "@/lib/api";
 
 export default function HomePage() {
   const [url, setUrl]           = useState("");
-  const [language, setLanguage] = useState<"en" | "de">("en");
+  const [language, setLanguage] = useState<"en" | "de">("de");
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const router = useRouter();

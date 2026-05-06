@@ -13,7 +13,7 @@ load_dotenv()
 
 from .database import RecipeRecord, get_db, init_db
 from .downloader import download_video
-from .models import Ingredient, Recipe, RecipeInDB, RecipeRequest, RecipeSummary
+from .models import Ingredient, Recipe, RecipeInDB, RecipeRequest, RecipeSummary, RecipeUpdate
 from .recipe_parser import parse_recipe
 from .screenshot import get_screenshot as fetch_screenshot
 from .transcriber import get_transcript
@@ -99,6 +99,30 @@ def list_recipes(search: Optional[str] = None, db: Session = Depends(get_db)) ->
 @app.get("/recipes/{recipe_id}", response_model=RecipeInDB)
 def get_recipe(recipe_id: int, db: Session = Depends(get_db)) -> RecipeInDB:
     record = _get_or_404(db, recipe_id)
+    return _to_full(record)
+
+
+@app.put("/recipes/{recipe_id}", response_model=RecipeInDB)
+def update_recipe(recipe_id: int, update: RecipeUpdate, db: Session = Depends(get_db)) -> RecipeInDB:
+    record = _get_or_404(db, recipe_id)
+    if update.title is not None:
+        record.title = update.title
+    if update.description is not None:
+        record.description = update.description
+    if update.servings is not None:
+        record.servings = update.servings
+    if update.prep_time is not None:
+        record.prep_time = update.prep_time
+    if update.cook_time is not None:
+        record.cook_time = update.cook_time
+    if update.ingredients is not None:
+        record.ingredients = json.dumps([i.model_dump() for i in update.ingredients])
+    if update.steps is not None:
+        record.steps = json.dumps(update.steps)
+    if update.language is not None:
+        record.language = update.language
+    db.commit()
+    db.refresh(record)
     return _to_full(record)
 
 

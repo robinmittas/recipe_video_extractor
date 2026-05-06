@@ -46,4 +46,17 @@ class RecipeSummary(BaseModel):
 
 class RecipeRequest(BaseModel):
     url: str
-    language: str = "en"
+    language: str = "de"
+
+
+class RecipeUpdate(BaseModel):
+    """All fields optional — only supplied fields are updated."""
+
+    title: Optional[str] = None
+    description: Optional[str] = None
+    servings: Optional[str] = None
+    prep_time: Optional[str] = None
+    cook_time: Optional[str] = None
+    ingredients: Optional[list[Ingredient]] = None
+    steps: Optional[list[str]] = None
+    language: Optional[str] = None
