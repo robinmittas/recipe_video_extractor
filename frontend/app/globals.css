@@ -9,3 +9,42 @@ html {
 body {
   @apply bg-stone-50 text-stone-900;
 }
+
+@media print {
+  /* hide chrome */
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+    font-size: 12pt;
+  }
+
+  /* full-width layout */
+  .max-w-lg,
+  .max-w-2xl {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* screenshot */
+  .aspect-video img {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: 0;
+  }
+
+  /* clean up card borders */
+  .rounded-xl {
+    border-radius: 4pt !important;
+  }
+
+  /* avoid page breaks inside steps */
+  li {
+    break-inside: avoid;
+  }
+}

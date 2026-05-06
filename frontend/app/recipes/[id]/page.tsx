@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Clock, Users, ExternalLink, ChevronLeft } from "lucide-react";
 import Nav from "@/components/Nav";
 import DeleteButton from "./DeleteButton";
+import PrintButton from "./PrintButton";
 import { getRecipe } from "@/lib/api";
 
 interface Props {
@@ -48,7 +49,10 @@ export default async function RecipeDetailPage({ params }: Props) {
                 {recipe.language}
               </span>
             </div>
-            <DeleteButton recipeId={recipe.id} />
+            <div className="flex items-center gap-1 print:hidden">
+              <PrintButton />
+              <DeleteButton recipeId={recipe.id} />
+            </div>
           </div>
 
           <h1 className="text-2xl font-bold text-stone-900 mb-3 leading-tight">
