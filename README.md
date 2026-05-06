@@ -152,17 +152,32 @@ Save these two values — you'll need them in Steps 3 and 4.
 
 ---
 
-### Step 5 — Install on iPhone as a PWA
+### Step 5 — Install on iPhone and Android as a PWA
 
-1. Open your Vercel URL in **Safari on iPhone** (must be Safari, not Chrome)
+The app is a **PWA (Progressive Web App)** — it installs directly from the browser on both platforms. No App Store or Play Store needed.
+
+**iPhone (Safari only):**
+1. Open your Vercel URL in **Safari** (must be Safari, not Chrome)
 2. Tap the **Share** button (square with arrow ↑)
 3. Tap **Add to Home Screen**
 4. The app appears as a fullscreen icon on your home screen
 
-**To use on the same WiFi as your Mac (local testing):**
+**Android (Chrome or any Chromium browser):**
+1. Open your Vercel URL in **Chrome**
+2. Chrome automatically shows an **"Add to Home Screen"** or **"Install App"** banner at the bottom
+3. Tap it — or tap the three-dot menu → **Add to Home Screen**
+4. The app appears as a fullscreen icon on your home screen
+
+| | iPhone | Android |
+|---|---|---|
+| Required browser | Safari | Chrome, Edge, Brave, Samsung Browser |
+| How | Share → Add to Home Screen | Banner auto-appears or menu → Add to Home Screen |
+| Fullscreen | ✅ | ✅ |
+
+**To test locally on your phone (same WiFi as your Mac):**
 ```bash
 ipconfig getifaddr en0   # get your Mac's local IP, e.g. 192.168.1.42
-# Then open http://192.168.1.42:3000 in iPhone Safari
+# Then open http://192.168.1.42:3000 in your phone browser
 ```
 
 ---

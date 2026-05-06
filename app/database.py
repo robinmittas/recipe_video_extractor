@@ -18,7 +18,13 @@ def _build_engine():
         import libsql_experimental as libsql  # only imported when Turso vars present
 
         def _creator():
-            return libsql.connect(database=_TURSO_URL, auth_token=_TURSO_TOKEN)
+            conn = libsql.connect(database=_TURSO_URL, auth_token=_TURSO_TOKEN)
+            # SQLAlchemy's pysqlite dialect calls create_function() on every
+            # new connection to register REGEXP support. libsql doesn't
+            # implement this method, so we add a no-op stub to avoid the crash.
+            if not hasattr(conn, "create_function"):
+                conn.create_function = lambda *args, **kwargs: None
+            return conn
 
         return create_engine(
             "sqlite+pysqlite:///",
