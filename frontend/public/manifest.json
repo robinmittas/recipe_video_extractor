@@ -1,0 +1,17 @@
+{
+  "name": "Recipe Extractor",
+  "short_name": "Recipes",
+  "description": "Turn cooking videos into recipes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

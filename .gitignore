@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.db
+
+# Env files
+.env
+.env.local
+frontend/.env.local
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# Test output files
+output_*.json
+
+# macOS
+.DS_Store
